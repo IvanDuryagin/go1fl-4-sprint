@@ -10,56 +10,45 @@ import (
 )
 
 const (
-	// Длина одного шага в метрах
-	stepLength = 0.65
-	// Количество метров в одном километре
-	mInKm = 1000
+	stepLength = 0.65 // Длина одного шага в метрах
+	mInKm      = 1000 // Количество метров в одном километре
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
-	stepsDuration := strings.Split(data, ",")
-	if len(stepsDuration) != 2 {
+	parts := strings.Split(data, ",")
+	if len(parts) != 2 {
 		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
 	}
 
-	stepsStr := stepsDuration[0]
-	steps, err := strconv.Atoi(stepsStr)
+	steps, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 	if err != nil {
-		return 0, 0, fmt.Errorf("неверный формат количества шагов '%s':'%v'", stepsStr, err)
+		return 0, 0, fmt.Errorf("неверный формат количества шагов '%s': %v", parts[0], err)
 	}
 	if steps <= 0 {
-		return 0, 0, fmt.Errorf("количество шагов < 0 '%d'", steps)
+		return 0, 0, fmt.Errorf("количество шагов должно быть положительным, получено: %d", steps)
 	}
 
-	durationStr := stepsDuration[1]
-	duration, err := time.ParseDuration(durationStr)
+	duration, err := time.ParseDuration(strings.TrimSpace(parts[1]))
 	if err != nil {
-		return 0, 0, fmt.Errorf("неверный формат продолжительности '%s':'%v'", durationStr, err)
+		return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': %v", parts[1], err)
 	}
 	if duration <= 0 {
-		return 0, 0, fmt.Errorf("ошибка: Время < 0 '%s'", duration)
+		return 0, 0, fmt.Errorf("продолжительность должна быть положительной, получено: %v", duration)
 	}
+
 	return steps, duration, nil
 }
 
 func DayActionInfo(data string, weight, height float64) string {
 	steps, duration, err := parsePackage(data)
 	if err != nil {
-		fmt.Println("Ошибка:", err)
-		return ""
+		return fmt.Sprintf("Ошибка: %v", err)
 	}
 
-	if steps <= 0 {
-		return ""
-	}
-
-	distanceM := float64(steps) * stepLength
-	distanceKm := distanceM / mInKm
-
+	distanceKm := float64(steps) * stepLength / mInKm
 	calories, err := spentcalories.WalkingSpentCalories(steps, weight, height, duration)
 	if err != nil {
-		fmt.Println("Ошибка расчета калорий:", err)
-		return ""
+		return fmt.Sprintf("Ошибка расчета калорий: %v", err)
 	}
 
 	return fmt.Sprintf(
