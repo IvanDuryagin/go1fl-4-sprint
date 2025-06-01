@@ -11,7 +11,7 @@ import (
 
 const (
 	stepLength = 0.65 // Длина одного шага в метрах
-	mInKm      = 1000 // Количество метров в одном километре
+	mInKm      = 1000 // Количество метров в километре
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
@@ -42,13 +42,15 @@ func parsePackage(data string) (int, time.Duration, error) {
 func DayActionInfo(data string, weight, height float64) string {
 	steps, duration, err := parsePackage(data)
 	if err != nil {
-		return fmt.Sprintf("Ошибка: %v", err)
+		fmt.Println("Ошибка:", err)
+		return ""
 	}
 
 	distanceKm := float64(steps) * stepLength / mInKm
 	calories, err := spentcalories.WalkingSpentCalories(steps, weight, height, duration)
 	if err != nil {
-		return fmt.Sprintf("Ошибка расчета калорий: %v", err)
+		fmt.Println("Ошибка расчета калорий:", err)
+		return ""
 	}
 
 	return fmt.Sprintf(
