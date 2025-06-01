@@ -21,8 +21,8 @@ func parsePackage(data string) (int, time.Duration, error) {
 		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
 	}
 
-	// Обработка шагов
-	stepStr := strings.TrimSpace(parts[0])
+	// Обработка шагов с удалением всех пробелов
+	stepStr := strings.ReplaceAll(parts[0], " ", "")
 	if stepStr == "" {
 		return 0, 0, fmt.Errorf("количество шагов не может быть пустым")
 	}
@@ -40,19 +40,19 @@ func parsePackage(data string) (int, time.Duration, error) {
 		return 0, 0, fmt.Errorf("количество шагов должно быть положительным, получено: %d", steps)
 	}
 
-	// Обработка времени
-	durationStr := strings.TrimSpace(parts[1])
+	// Обработка времени с удалением всех пробелов
+	durationStr := strings.ReplaceAll(parts[1], " ", "")
 	if durationStr == "" {
 		return 0, 0, fmt.Errorf("продолжительность не может быть пустой")
 	}
 
 	// Заменяем . на h для дробных часов (например, 1.5h -> 1h30m)
 	if strings.Contains(durationStr, ".") && strings.Contains(durationStr, "h") {
-		parts := strings.Split(durationStr, "h")
-		if len(parts) != 2 {
+		timeParts := strings.Split(durationStr, "h")
+		if len(timeParts) != 2 {
 			return 0, 0, fmt.Errorf("неверный формат продолжительности '%s'", durationStr)
 		}
-		hours, err := strconv.ParseFloat(parts[0], 64)
+		hours, err := strconv.ParseFloat(timeParts[0], 64)
 		if err != nil {
 			return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': %v", durationStr, err)
 		}
