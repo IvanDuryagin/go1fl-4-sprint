@@ -16,18 +16,28 @@ const (
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
+	// Проверка на пустую строку
+	if data == "" {
+		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
+	}
+
 	parts := strings.Split(data, ",")
 	if len(parts) != 2 {
 		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
 	}
 
-	// Обработка шагов с удалением всех пробелов
-	stepStr := strings.ReplaceAll(parts[0], " ", "")
+	// Обработка шагов - строгая проверка на пробелы
+	stepStr := parts[0]
+	if strings.HasPrefix(stepStr, " ") || strings.HasSuffix(stepStr, " ") {
+		return 0, 0, fmt.Errorf("неверный формат количества шагов '%s': пробелы не допускаются", stepStr)
+	}
+
+	// Проверка на пустую строку шагов
 	if stepStr == "" {
 		return 0, 0, fmt.Errorf("количество шагов не может быть пустым")
 	}
 
-	// Удаляем + в начале если есть
+	// Удаляем только начальный плюс, если есть
 	if strings.HasPrefix(stepStr, "+") {
 		stepStr = stepStr[1:]
 	}
@@ -40,8 +50,13 @@ func parsePackage(data string) (int, time.Duration, error) {
 		return 0, 0, fmt.Errorf("количество шагов должно быть положительным, получено: %d", steps)
 	}
 
-	// Обработка времени с удалением всех пробелов
-	durationStr := strings.ReplaceAll(parts[1], " ", "")
+	// Обработка времени - строгая проверка формата
+	durationStr := parts[1]
+	if strings.Contains(durationStr, " ") {
+		return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': пробелы не допускаются", durationStr)
+	}
+
+	// Проверка на пустую строку времени
 	if durationStr == "" {
 		return 0, 0, fmt.Errorf("продолжительность не может быть пустой")
 	}
