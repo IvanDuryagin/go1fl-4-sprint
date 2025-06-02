@@ -1,20 +1,110 @@
 package daysteps
 
 import (
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/Yandex-Practicum/tracker/internal/spentcalories"
 )
 
 const (
-	// Длина одного шага в метрах
-	stepLength = 0.65
-	// Количество метров в одном километре
-	mInKm = 1000
+	stepLength = 0.65 // Длина одного шага в метрах
+	mInKm      = 1000 // Количество метров в километре
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
-	// TODO: реализовать функцию
+	// Проверка на пустую строку
+	if data == "" {
+		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
+	}
+
+	parts := strings.Split(data, ",")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("неверный формат данных: ожидается 'шаги,время', получено: '%s'", data)
+	}
+
+	// Обработка шагов - строгая проверка на пробелы
+	stepStr := parts[0]
+	if strings.HasPrefix(stepStr, " ") || strings.HasSuffix(stepStr, " ") {
+		return 0, 0, fmt.Errorf("неверный формат количества шагов '%s': пробелы не допускаются", stepStr)
+	}
+
+	// Проверка на пустую строку шагов
+	if stepStr == "" {
+		return 0, 0, fmt.Errorf("количество шагов не может быть пустым")
+	}
+
+	// Удаляем только начальный плюс, если есть
+	if strings.HasPrefix(stepStr, "+") {
+		stepStr = stepStr[1:]
+	}
+
+	steps, err := strconv.Atoi(stepStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("неверный формат количества шагов '%s': %v", parts[0], err)
+	}
+	if steps <= 0 {
+		return 0, 0, fmt.Errorf("количество шагов должно быть положительным, получено: %d", steps)
+	}
+
+	// Обработка времени - строгая проверка формата
+	durationStr := parts[1]
+	if strings.Contains(durationStr, " ") {
+		return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': пробелы не допускаются", durationStr)
+	}
+
+	// Проверка на пустую строку времени
+	if durationStr == "" {
+		return 0, 0, fmt.Errorf("продолжительность не может быть пустой")
+	}
+
+	// Заменяем . на h для дробных часов (например, 1.5h -> 1h30m)
+	if strings.Contains(durationStr, ".") && strings.Contains(durationStr, "h") {
+		timeParts := strings.Split(durationStr, "h")
+		if len(timeParts) != 2 {
+			return 0, 0, fmt.Errorf("неверный формат продолжительности '%s'", durationStr)
+		}
+		hours, err := strconv.ParseFloat(timeParts[0], 64)
+		if err != nil {
+			return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': %v", durationStr, err)
+		}
+		wholeHours := int(hours)
+		minutes := int((hours - float64(wholeHours)) * 60)
+		durationStr = fmt.Sprintf("%dh%dm", wholeHours, minutes)
+	}
+
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("неверный формат продолжительности '%s': %v", parts[1], err)
+	}
+	if duration <= 0 {
+		return 0, 0, fmt.Errorf("продолжительность должна быть положительной, получено: %v", duration)
+	}
+
+	return steps, duration, nil
 }
 
 func DayActionInfo(data string, weight, height float64) string {
-	// TODO: реализовать функцию
+	steps, duration, err := parsePackage(data)
+	if err != nil {
+		log.Println("Ошибка:", err)
+		return ""
+	}
+
+	distanceKm := float64(steps) * stepLength / mInKm
+	calories, err := spentcalories.WalkingSpentCalories(steps, weight, height, duration)
+	if err != nil {
+		log.Println("Ошибка расчета калорий:", err)
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"Количество шагов: %d.\nДистанция составила %.2f км.\nВы сожгли %.2f ккал.\n",
+		steps,
+		distanceKm,
+		calories,
+	)
 }
